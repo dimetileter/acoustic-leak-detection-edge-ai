@@ -1,0 +1,16 @@
+# IDE
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+
+.implementation_plan.md.resolved
+.implementation_plan.md
+
+# Dataset folder is tracked but its contents are ignored 
+# (handled by inner .gitignore files in dataset/leak and dataset/no-leak)
+
+# Audio files
+*.wav
+*.mp3

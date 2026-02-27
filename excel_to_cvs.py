@@ -1,39 +1,41 @@
 import pandas as pd
 import os
 
+def convert_excel_to_csv_recursive(root_folder):
+    # Tüm alt klasörlerdeki .xlsx ve .xls dosyalarını bul
+    excel_files = []
+    for dirpath, _, filenames in os.walk(root_folder):
+        for f in filenames:
+            if f.endswith('.xlsx') or f.endswith('.xls'):
+                # .csv dosyası zaten var mı diye kontrol edebiliriz
+                excel_files.append(os.path.join(dirpath, f))
 
-def convert_excel_to_csv(folder_path):
-    # Klasördeki tüm dosyaları listele
-    files = [f for f in os.listdir(folder_path) if f.endswith('.xlsx')]
-
-    if not files:
-        print("Klasörde .xlsx dosyası bulunamadı.")
+    if not excel_files:
+        print(f"'{root_folder}' dizininde Excel dosyası bulunamadı.")
         return
 
-    print(f"{len(files)} adet dosya dönüştürülüyor...")
+    print(f"Toplam {len(excel_files)} adet Excel dosyası dönüştürülüyor...")
 
-    for file in files:
-        # Dosya yolunu oluştur
-        excel_path = os.path.join(folder_path, file)
-        # Yeni CSV dosya ismini oluştur (uzantıyı değiştir)
-        csv_path = os.path.join(folder_path, file.replace('.xlsx', '.csv'))
+    for excel_path in excel_files:
+        # Yeni CSV dosya ismini oluştur
+        base = os.path.splitext(excel_path)[0]
+        csv_path = base + ".csv"
 
         try:
             # Excel dosyasını oku
             df = pd.read_excel(excel_path)
 
             # CSV olarak kaydet (indeks sütunu olmadan)
-            # UTF-8 encoding Türkçe karakter sorunlarını önler
             df.to_csv(csv_path, index=False, encoding='utf-8')
-            print(f"Başarılı: {file} -> {os.path.basename(csv_path)}")
+            print(f"Başarılı: {os.path.basename(excel_path)} -> {os.path.basename(csv_path)}")
         except Exception as e:
-            print(f"Hata oluştu ({file}): {e}")
+            print(f"Hata oluştu ({os.path.basename(excel_path)}): {e}")
 
     print("\nTüm dönüştürme işlemleri tamamlandı.")
 
-
 # --- KULLANIM ---
-# Excel dosyalarının olduğu klasör yolunu buraya yazmalısın
-# Örneğin: "dataset/MEMS_Accelerometers/leak"
-target_folder = "dataset/MEMS Accelerometers/Leak"
-convert_excel_to_csv(target_folder)
+target_folder = os.path.join("dataset", "MEMS Accelerometers")
+if os.path.exists(target_folder):
+    convert_excel_to_csv_recursive(target_folder)
+else:
+    print(f"Hata: '{target_folder}' klasörü bulunamadı.")

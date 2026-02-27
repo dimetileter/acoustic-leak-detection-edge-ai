@@ -1,0 +1,37 @@
+# IoT Simülasyonu ve Yapay Zeka Entegrasyon Mimarisi Planı
+
+Kullanıcı, simülasyon betiğine ([simlation.py](file:///c:/Users/Ali%20Osman/Desktop/Masa%C3%BCst%C3%BC/%C3%9Cni%204/D%C3%B6nem%20Projesi/acoustic_leak_detection_system/simlation.py)) sızıntı olup olmadığını ve buna bağlı çevresel parametreleri (Basınç, Sıcaklık) yönetecek gerçekçi bir tablo veri seti (CSV) entegre etmek istiyor. CSV'de "sızıntı var" (label=1) olarak etiketlendiğinde, `leak` klasöründen bir `.wav` dosyası çekilecek ve akustik özellikleri çevresel verilerle birlikte gönderilecek.
+
+Daha da önemlisi, kullanıcı gerçek sızıntı tespitinin iki model içeren bir **Uzamsal-Zamansal (Spatiotemporal) Yapay Zeka Mimarisi** ile yapılacağını belirtiyor:
+1. **Uzamsal Analiz (CNN Katmanı):** 1 saniyelik spektrogram görüntülerini öznitelik vektörlerine dönüştürür, yüksek frekanslı "sızıntı izlerini" (parlak dikey çizgiler/yoğunlaşmalar) arar.
+2. **Zamansal Analiz (LSTM Katmanı):** Sızıntı deseninin kalıcı (Gerçek Sızıntı) mı yoksa geçici (Gürültü/İş Makinesi vs.) mi olduğunu belirlemek için ardışık 5 öznitelik vektörünü (5 saniyelik pencere) alır.
+
+## Önerilen Mimari
+
+Bu gelişmiş yapay zeka mimarisini desteklemek için, Uç (Edge) ve simülasyon sistemlerinin verileri **Kayar Pencereler (Sliding Windows / Tampon Bellek)** halinde işleyecek şekilde tasarlanması gerekir.
+
+### 1. Simülasyon (Veri Kaynağı)
+[simlation.py](file:///c:/Users/Ali%20Osman/Desktop/Masa%C3%BCst%C3%BC/%C3%9Cni%204/D%C3%B6nem%20Projesi/acoustic_leak_detection_system/simlation.py) aşağıdaki mantıkta bir ana CSV dosyasını okuyacak:
+`[Zaman, Basınç, Sıcaklık, AkışHızı, Etiket (is_leak)]`
+- Dosyayı satır satır okuyacak ve her satırı 1 saniyelik bir simülasyon adımı olarak işleyecek.
+- Eğer `Etiket == 1` ise, 'leak' `.wav` dosyasından rastgele 1 saniyelik bir ses parçası çekecek. Eğer `Etiket == 0` ise 'no-leak' içinden çekecek.
+- Bu 1 saniyelik veri paketini (Ses Dizisi, Basınç, Sıcaklık) Edge IoT Ajanına gönderecek.
+
+### 2. Edge Yapay Zeka Ajanı (Tampon Bellek ve Öznitelik Çıkarımı)
+[WaterLeakIoTAgent](file:///c:/Users/Ali%20Osman/Desktop/Masa%C3%BCst%C3%BC/%C3%9Cni%204/D%C3%B6nem%20Projesi/acoustic_leak_detection_system/Water_Leak_IoT_Agent.py#9-71) sadece 1 saniyelik veri üzerinden tahmin yapamaz, çünkü LSTM'nin düzgün çalışması için geçmiş 5 saniyeyi görmesi gerekir.
+- **Tampon Bellek (Buffer):** Ajan, boyutu 5 olan bir kuyruk (deque) tutacak (5 saniyelik ses/spektrogramı temsil eder).
+- **Adım 1 (CNN):** Her saniye, yeni gelen 1 saniyelik ses parçası Spektrograma (Mel-Spectrogram) dönüştürülecek, CNN modelinden geçirilecek ve 1 Boyutlu Matematiksel Öznitelik Vektörüne dönüştürülecek.
+- **Adım 2 (Kuyruk/Queue):** Bu vektör tampon belleğe (kuyruğa) eklenecek. Eğer kuyruk 5'ten fazla öğe içeriyorsa, en eskisini silecek (FIFO - İlk giren ilk çıkar).
+- **Adım 3 (LSTM):** Kuyrukta tam olarak 5 Öznitelik Vektörü biriktiğinde, bu ardışık dizi `[1, 5, CNN_Çıkış_Boyutu]` formunda LSTM ağına beslenecek.
+- **Karar Noktası:** LSTM bir olasılık (probability) değeri üretecek. Eğet `olasılık > 0.90` (sızıntı deseni sürekli devam ediyorsa), sistem "Sızıntı Var" alarmı verecek. Aksi halde bunun geçici bir gürültü/iş makinesi olduğuna karar verecek.
+
+### Uygulama İçin Sonraki Adımlar (Geliştirme Planı)
+
+1.  **Örnek bir CSV oluştur:** Simülasyonu sürecek sentetik satırlar içeren `network_sensor_data.csv` dosyasını oluştur.
+2.  **[simlation.py](file:///c:/Users/Ali%20Osman/Desktop/Masa%C3%BCst%C3%BC/%C3%9Cni%204/D%C3%B6nem%20Projesi/acoustic_leak_detection_system/simlation.py) dosyasını yeniden düzenle:** CSV'yi zamansal olarak sıralı bir biçimde okuyacak şekilde güncelle.
+3.  **[Water_Leak_IoT_Agent.py](file:///c:/Users/Ali%20Osman/Desktop/Masa%C3%BCst%C3%BC/%C3%9Cni%204/D%C3%B6nem%20Projesi/acoustic_leak_detection_system/Water_Leak_IoT_Agent.py) dosyasını güncelle:** CNN vektörlerinden oluşan kayar pencereyi tutmak için bir `collections.deque(maxlen=5)` (kuyruk) mantığı ekle.
+4.  **Yapay Zeka Modellerini Taklit Et (Mock):** Gerçek AI modelleri eğitilene kadar boru hattının (pipeline) uçtan uca test edilebilmesi için sahte tahminler (placeholder) üreten sahte CNN ve LSTM fonksiyonları ekle.
+
+## Kullanıcıdan Onay/Gözden Geçirme Bekleniyor
+
+Kuyruk (deque) tabanlı bu mimari, kafanızdaki yapıya tam olarak uygun mu? Bu mantığa göre sistem ilk çalıştırıldığında mantıklı bir tahmin yapabilmek için önce 5 saniye boyunca borudan veri gelmesini bekleyecek, ardından (kuyruk dolduktan sonra) geçmiş 5 saniyeye bakarak artık her "1 saniyede bir" devamlı tahmin üretmeye devam edecektir. Onaylıyorsanız kodlamaya geçebiliriz.
