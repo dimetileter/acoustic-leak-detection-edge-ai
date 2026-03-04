@@ -2,10 +2,16 @@
 import tensorflow as tf
 import pathlib
 import matplotlib.pyplot as plt
+import random  # Karıştırma işlemi için eklendi
+
+
+import os
+
+from tensorflow.python.keras.callbacks import EarlyStopping
 
 #%%
 # 1. Pathlib kullanarak yolu tanımla (Türkçe karakter sorununu aşar)
-data_dir = pathlib.Path(r"../dataset/spectrogram_pool")
+data_dir = pathlib.Path(r"../dataset/spectrogram_pool_augmented")
 
 # 2. Dosya yollarını ve etiketleri manuel olarak topla
 # görselindeki yapıya sadık kalıyoruz
@@ -16,6 +22,17 @@ all_image_paths = [str(path) for path in all_image_paths]
 label_names = sorted(item.name for item in data_dir.glob('*/') if item.is_dir())
 label_to_index = dict((name, index) for index, name in enumerate(label_names))
 all_image_labels = [label_to_index[pathlib.Path(path).parent.name] for path in all_image_paths]
+
+# --- KRİTİK ÇÖZÜM: VERİYİ KARIŞTIR (SHUFFLE) ---
+# Yolları ve etiketleri birbirine bağlayıp karıştırıyoruz, sonra tekrar ayırıyoruz.
+c = list(zip(all_image_paths, all_image_labels))
+random.seed(42) # Her çalıştırmada aynı rastgeleliği elde etmek için (tutarlılık sağlar)
+random.shuffle(c)
+all_image_paths, all_image_labels = zip(*c)
+
+all_image_paths = list(all_image_paths)
+all_image_labels = list(all_image_labels)
+# -----------------------------------------------
 
 # 3. TensorFlow Veri Setini Oluştur
 def load_and_preprocess_image(path, label):
@@ -44,13 +61,13 @@ from tensorflow.keras import layers, models
 # 1. CNN Model Mimarisi Oluşturma (İş Akış Planı Madde 2.2)
 model = models.Sequential([
     # Giriş katmanı: 128x128 boyutunda, 3 kanal (RGB)
-    # Normalizasyon zaten manuel yapıldı (0-1 arası) [cite: 32]
+    # Normalizasyon zaten manuel yapıldı (0-1 arası)
 
-    # İlk Evrişim Katmanı (Öznitelik Çıkarım) [cite: 34]
+    # İlk Evrişim Katmanı (Öznitelik Çıkarım)
     layers.Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
     layers.MaxPooling2D((2, 2)),
 
-    # İkinci Evrişim Katmanı (Desen Tespiti) [cite: 35]
+    # İkinci Evrişim Katmanı (Desen Tespiti)
     layers.Conv2D(64, (3, 3), activation='relu'),
     layers.MaxPooling2D((2, 2)),
 
@@ -58,11 +75,11 @@ model = models.Sequential([
     layers.Conv2D(128, (3, 3), activation='relu'),
     layers.MaxPooling2D((2, 2)),
 
-    # Vektörleştirme (Madde 2.2.36) [cite: 36]
+    # Vektörleştirme (Madde 2.2.36)
     layers.Flatten(),
     layers.Dense(128, activation='relu'),
     layers.Dropout(0.6),  # Ezberlemeyi (overfitting) önlemek için
-    layers.Dense(1, activation='sigmoid')  # 2 sınıf: leak veya no_leak [cite: 6]
+    layers.Dense(1, activation='sigmoid')  # 2 sınıf: leak veya no_leak
 ])
 
 # 2. Derleme
@@ -72,15 +89,29 @@ model.compile(optimizer='adam',
 
 model.summary()
 
-#
+early_stopper = EarlyStopping(
+    monitor='val_loss',     # Neyi takip edeceğiz? Doğrulama kaybını.
+    patience=5,             # Kaç epoch boyunca iyileşmezse duralım? (5 epoch iyi bir toleranstır)
+    restore_best_weights=True # Eğitimi kestiğinde, en düşük val_loss'a sahip epoch'un ağırlıklarını yükle.
+)
 
 # 3. Eğitimi Başlat
-epochs = 30
+epochs = 13
 history = model.fit(
     train_ds,
     validation_data=val_ds,
-    epochs=epochs
+    epochs=epochs,
+    #callbacks=[early_stopper],
+    workers=4
 )
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# Modelin ismini ve uzantısını belirliyoruz
+model_save_path = os.path.join(current_dir, "leak_detection_cnn.keras")
+
+# Modeli diske yazdırıyoruz
+model.save(model_save_path)
+print(f"\nModel başarıyla şuraya kaydedildi: {model_save_path}\n")
 
 # 4. Sonuçları Grafikleştirme
 plt.figure(figsize=(10, 5))
