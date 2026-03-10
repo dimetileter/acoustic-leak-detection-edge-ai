@@ -74,16 +74,16 @@ if __name__ == "__main__":
     # Proje kök dizini (data_preprocessing'in bir üstü)
     PROJECT_ROOT = os.path.dirname(BASE_DIR)
 
-    LEAK_KLASORU = os.path.join(PROJECT_ROOT, "dataset", "sound_datasets_for_test", "leak")
-    NO_LEAK_KLASORU = os.path.join(PROJECT_ROOT, "dataset", "sound_datasets_for_test", "no-leak")
+    LEAK_KLASORU = os.path.join(PROJECT_ROOT, "dataset", "sound_datasets_for_test", "test-leak")
+    NO_LEAK_KLASORU = os.path.join(PROJECT_ROOT, "dataset", "sound_datasets_for_test", "test-no-leak")
 
     # Çoğaltılmış seslerin gideceği yeni klasör
-    HEDEF_KLASOR = os.path.join(PROJECT_ROOT, "dataset", "sound_datasets_for_test", "audio_agumentation_only_100")
+    HEDEF_KLASOR = os.path.join(PROJECT_ROOT, "dataset", "sound_datasets_for_test", "audio_agumentation_only_40")
 
     # Her bir dosyadan 15 tane üret, 70 resim -> 1050 resşm
     augment_audio_dataset(
         leak_dir=LEAK_KLASORU,
         no_leak_dir=NO_LEAK_KLASORU,
         target_dir=HEDEF_KLASOR,
-        augmentations_per_file=15
+        augmentations_per_file=1
     )

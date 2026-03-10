@@ -77,8 +77,8 @@ def create_spectrograms_parallel(leak_dir, no_leak_dir, target_dir):
 
 # WINDOWS İÇİN KRİTİK NOKTA:
 if __name__ == "__main__":
-    leak_dir = "dataset/sound_datasets_for_test/audio_agumentation_only_100/leak"
-    no_leak_dir = "dataset/sound_datasets_for_test/audio_agumentation_only_100/no_leak"
-    target_dir = "dataset/spectrogram_pool_augmented_from_only_100"
+    leak_dir = "dataset/sound_datasets_for_test/audio_agumentation_only_40/leak"
+    no_leak_dir = "dataset/sound_datasets_for_test/audio_agumentation_only_40/no_leak"
+    target_dir = "dataset/image_datasets/spectrogram_pool_augmented_from_only_40"
 
     create_spectrograms_parallel(leak_dir, no_leak_dir, target_dir)

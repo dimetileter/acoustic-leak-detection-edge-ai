@@ -11,7 +11,9 @@ from tensorflow.python.keras.callbacks import EarlyStopping
 
 #%%
 # 1. Pathlib kullanarak yolu tanımla (Türkçe karakter sorununu aşar)
-data_dir = pathlib.Path(r"../dataset/spectrogram_pool_augmented")
+# __file__ ile mutlak yol: scriptin hangi dizinden çalıştırıldığına bağlı kalmaz
+_BASE = pathlib.Path(__file__).resolve().parent.parent  # proje kök dizini
+data_dir = _BASE / "dataset" / "image_datasets" / "spectrogram_pool_augmented_from_only_100"
 
 # 2. Dosya yollarını ve etiketleri manuel olarak topla
 # görselindeki yapıya sadık kalıyoruz
@@ -50,64 +52,81 @@ DATASET_SIZE = len(all_image_paths)
 train_size = int(0.8 * DATASET_SIZE)
 val_size = DATASET_SIZE - train_size
 
-train_ds = image_label_ds.take(train_size).batch(16).prefetch(buffer_size=tf.data.AUTOTUNE)
-val_ds = image_label_ds.skip(train_size).batch(16).prefetch(buffer_size=tf.data.AUTOTUNE)
+train_ds = image_label_ds.take(train_size).batch(8).prefetch(buffer_size=tf.data.AUTOTUNE)
+val_ds = image_label_ds.skip(train_size).batch(8).prefetch(buffer_size=tf.data.AUTOTUNE)
 
 print(f"Toplam {DATASET_SIZE} resim yüklendi. Sınıflar: {label_names}")
+
+# --- Sınıf Ağırlıkları (Class Weight) ---
+# Modelin az temsil edilen sınıfı daha iyi öğrenmesi için
+import numpy as np
+labels_array = np.array(all_image_labels)
+n_leak = np.sum(labels_array == 0)
+n_no_leak = np.sum(labels_array == 1)
+total = len(labels_array)
+
+class_weight = {
+    0: total / (2.0 * n_leak),     # leak ağırlığı
+    1: total / (2.0 * n_no_leak)   # no_leak ağırlığı
+}
+print(f"Sınıf Ağırlıkları: leak={class_weight[0]:.2f}, no_leak={class_weight[1]:.2f}")
 
 from tensorflow.keras import layers, models
 
 #%%
-# 1. CNN Model Mimarisi Oluşturma (İş Akış Planı Madde 2.2)
+# 1. CNN Model Mimarisi (Basit mimari + Dropout + düşük LR)
 model = models.Sequential([
-    # Giriş katmanı: 128x128 boyutunda, 3 kanal (RGB)
-    # Normalizasyon zaten manuel yapıldı (0-1 arası)
-
-    # İlk Evrişim Katmanı (Öznitelik Çıkarım)
+    # İlk Evrişim Katmanı
     layers.Conv2D(32, (3, 3), activation='relu', input_shape=(128, 128, 3)),
     layers.MaxPooling2D((2, 2)),
+    layers.Dropout(0.2),
 
-    # İkinci Evrişim Katmanı (Desen Tespiti)
+    # İkinci Evrişim Katmanı
     layers.Conv2D(64, (3, 3), activation='relu'),
     layers.MaxPooling2D((2, 2)),
+    layers.Dropout(0.2),
 
     # Üçüncü Evrişim Katmanı
     layers.Conv2D(128, (3, 3), activation='relu'),
     layers.MaxPooling2D((2, 2)),
+    layers.Dropout(0.3),
 
-    # Vektörleştirme (Madde 2.2.36)
+    # Sınıflandırma
     layers.Flatten(),
     layers.Dense(128, activation='relu'),
-    layers.Dropout(0.6),  # Ezberlemeyi (overfitting) önlemek için
-    layers.Dense(1, activation='sigmoid')  # 2 sınıf: leak veya no_leak
+    layers.Dropout(0.5),
+    layers.Dense(1, activation='sigmoid')
 ])
 
-# 2. Derleme
-model.compile(optimizer='adam',
-              loss='binary_crossentropy',
-              metrics=['accuracy'])
+# 2. Derleme — düşük öğrenme hızı
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.0005),
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
 
 model.summary()
 
 early_stopper = EarlyStopping(
-    monitor='val_loss',     # Neyi takip edeceğiz? Doğrulama kaybını.
-    patience=5,             # Kaç epoch boyunca iyileşmezse duralım? (5 epoch iyi bir toleranstır)
-    restore_best_weights=True # Eğitimi kestiğinde, en düşük val_loss'a sahip epoch'un ağırlıklarını yükle.
+    monitor='val_loss',
+    patience=5,
+    restore_best_weights=True
 )
 
 # 3. Eğitimi Başlat
-epochs = 13
+epochs = 12
 history = model.fit(
     train_ds,
     validation_data=val_ds,
     epochs=epochs,
-    #callbacks=[early_stopper],
+    class_weight=class_weight,
+    callbacks=[early_stopper],
     workers=4
 )
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # Modelin ismini ve uzantısını belirliyoruz
-model_save_path = os.path.join(current_dir, "leak_detection_cnn.keras")
+model_save_path = os.path.join(current_dir, "leak_detection_cnn_only_100(2.0).keras")
 
 # Modeli diske yazdırıyoruz
 model.save(model_save_path)

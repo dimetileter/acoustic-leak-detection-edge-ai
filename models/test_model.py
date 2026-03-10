@@ -22,8 +22,8 @@ import matplotlib.pyplot as plt
 
 # --- 1. Yollari Tanimla ---
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
-MODEL_PATH = BASE_DIR / "models" / "leak_detection_cnn.keras"
-DATA_DIR = BASE_DIR / "dataset" / "spectrogram_pool"
+MODEL_PATH = BASE_DIR / "models" / "leak_detection_cnn_only_100(2.0).keras"
+DATA_DIR = BASE_DIR / "dataset" / "image_datasets" / "spectrogram_pool_augmented_test_not_in_train"
 
 # Egitim kodundaki siralama ile ayni: leak=0, no_leak=1
 SINIF_ISIMLERI = ["leak", "no_leak"]
