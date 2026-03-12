@@ -75,7 +75,6 @@ def create_spectrograms_parallel(leak_dir, no_leak_dir, target_dir):
     print("\n[TAMAMLANDI] Tüm veri seti başarıyla resme çevrildi.")
 
 
-# WINDOWS İÇİN KRİTİK NOKTA:
 if __name__ == "__main__":
     leak_dir = "dataset/sound_datasets_for_test/audio_agumentation_only_40/leak"
     no_leak_dir = "dataset/sound_datasets_for_test/audio_agumentation_only_40/no_leak"
