@@ -22,7 +22,7 @@ matplotlib.rcParams['axes.unicode_minus'] = False
 
 # --- 1. Yollari Tanimla ---
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
-MODEL_PATH = BASE_DIR / "models" / "leak_detection_cnn_only_100(2.0).keras"
+MODEL_PATH = BASE_DIR / "models" / "leak_detection_cnn_2100Hz_23Epoch_.keras"
 DATA_DIR = BASE_DIR / "dataset" / "image_datasets" / "spectrogram_pool_augmented_from_only_40"
 
 # Egitim kodundaki siralama ile ayni: leak=0, no_leak=1

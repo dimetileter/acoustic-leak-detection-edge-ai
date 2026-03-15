@@ -19,7 +19,7 @@ def ses_birlestir(dosya_yolu, cikis_adi, tekrar_sayisi=2):
 
 
 # --- Kullanım Örneği ---
-girdi_dosyasi = "../../dataset/sound_datasets/leak/1.1.01.0330.wav"  # Birleştirmek istediğin dosyanın adı
+girdi_dosyasi = "../../dataset/original_sound_datasets/leak/1.1.01.0330.wav"  # Birleştirmek istediğin dosyanın adı
 cikti_dosyasi = "birlesmis_cikti.wav"
 
 ses_birlestir(girdi_dosyasi, cikti_dosyasi, tekrar_sayisi=2)

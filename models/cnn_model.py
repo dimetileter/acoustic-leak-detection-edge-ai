@@ -12,7 +12,7 @@ from tensorflow.python.keras.callbacks import EarlyStopping
 #%%
 # Pathlib kullanarak yolu karakter sorunu için
 _BASE = pathlib.Path(__file__).resolve().parent.parent  # proje kök dizini
-data_dir = _BASE / "dataset" / "image_datasets" / "spectrogram_pool_augmented_from_only_100"
+data_dir = _BASE / "dataset" / "image_datasets" / "spectrogram_pool_2100Hz"
 
 # 2. Dosya yollarını ve etiketleri manuel olarak topla
 # görselindeki yapıya sadık kalıyoruz
@@ -111,7 +111,7 @@ early_stopper = EarlyStopping(
 )
 
 # Eğitimi Başlat
-epochs = 12
+epochs = 50
 history = model.fit(
     train_ds,
     validation_data=val_ds,
@@ -123,7 +123,7 @@ history = model.fit(
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 # Modelin ismini ve uzantısını belirliyoruz
-model_save_path = os.path.join(current_dir, "leak_detection_cnn_only_100(2.0).keras")
+model_save_path = os.path.join(current_dir, "leak_detection_cnn_2100Hz_23Epoch_.keras")
 
 # Modeli diske yazdırıyoruz
 model.save(model_save_path)

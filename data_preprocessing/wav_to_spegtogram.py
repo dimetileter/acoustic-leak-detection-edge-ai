@@ -19,13 +19,13 @@ def process_single_wav(task_args):
         y, sr = librosa.load(wav_path, sr=None)
 
         # Mel-Spektrogram hesapla
-        S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=8000)
+        S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128, fmax=2100)
         S_dB = librosa.power_to_db(S, ref=np.max)
 
         # Resim çizimi
         fig = plt.figure(figsize=(3, 3))
         plt.axis('off')
-        librosa.display.specshow(S_dB, sr=sr, fmax=8000)
+        librosa.display.specshow(S_dB, sr=sr, fmax=2100)
 
         # Kaydet
         plt.savefig(png_path, bbox_inches="tight", pad_inches=0, transparent=True)
@@ -76,8 +76,8 @@ def create_spectrograms_parallel(leak_dir, no_leak_dir, target_dir):
 
 
 if __name__ == "__main__":
-    leak_dir = "dataset/sound_datasets_for_test/audio_agumentation_only_40/leak"
-    no_leak_dir = "dataset/sound_datasets_for_test/audio_agumentation_only_40/no_leak"
-    target_dir = "dataset/image_datasets/spectrogram_pool_augmented_from_only_40"
+    leak_dir = "../dataset/sound_datasets_for_test/audio_agumentation_only_100/leak"
+    no_leak_dir = "../dataset/sound_datasets_for_test/audio_agumentation_only_100/no_leak"
+    target_dir = "../dataset/image_datasets/spectrogram_pool_2100Hz"
 
     create_spectrograms_parallel(leak_dir, no_leak_dir, target_dir)
